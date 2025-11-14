@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý File</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #0a0a0a;
+            color: #00ffff;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            border-bottom: 1px solid #00ffff;
+        }
+        
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: #ff0055;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: #1a1a2e;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #00ffff;
+            margin-bottom: 20px;
+        }
+        
+        h2 {
+            margin-bottom: 15px;
+            color: #00ffff;
+        }
+        
+        .file-upload {
+            margin-bottom: 15px;
+        }
+        
+        .file-upload label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00ffff;
+        }
+        
+        .file-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+            background: #0a0a0a;
+            color: #00ffff;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: #ff0055;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        .submit-btn:hover {
+            background: #ff0088;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #0a0a0a;
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .file-preview {
+            margin-top: 10px;
+            padding: 10px;
+            background: #0a0a0a;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <button class="logout-btn" onclick="logout()">ĐĂNG XUẤT</button>
+    
+    <div class="header">
+        <h1>QUẢN LÝ FILE RAW</h1>
+        <p>Tạo repository với file raw và file web</p>
+    </div>
+    
+    <div class="container">
+        <div class="card">
+            <h2>FILE CHỈNH (CURL)</h2>
+            <div class="file-upload">
+                <label>Chọn file raw (hiển thị khi dùng curl):</label>
+                <input type="file" id="curlFile" class="file-input" accept=".txt,.py,.js,.html,.css">
+                <div class="file-preview" id="curlPreview"></div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>FILE FAKE (WEB)</h2>
+            <div class="file-upload">
+                <label>Chọn file fake (hiển thị trên web):</label>
+                <input type="file" id="webFile" class="file-input" accept=".txt,.py,.js,.html,.css">
+                <div class="file-preview" id="webPreview"></div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>THIẾT LẬP REPOSITORY</h2>
+            <div class="file-upload">
+                <label>Tên Repository:</label>
+                <input type="text" id="repoName" class="file-input" placeholder="Nhập tên repository" required>
+            </div>
+            <button class="submit-btn" onclick="createRepo()">KHỞI TẠO REPOSITORY</button>
+            
+            <div class="result" id="result">
+                <h3>THÔNG TIN ĐÃ TẠO:</h3>
+                <div id="resultContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Kiểm tra đăng nhập
+        if (localStorage.getItem('isLoggedIn') !== 'true') {
+            window.location.href = 'index.html';
+        }
+        
+        let curlContent = '';
+        let webContent = '';
+        
+        // Xử lý upload file curl
+        document.getElementById('curlFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    curlContent = e.target.result;
+                    document.getElementById('curlPreview').textContent = curlContent.substring(0, 500) + (curlContent.length > 500 ? '...' : '');
+                };
+                reader.readAsText(file);
+            }
+        });
+        
+        // Xử lý upload file web
+        document.getElementById('webFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    webContent = e.target.result;
+                    document.getElementById('webPreview').textContent = webContent.substring(0, 500) + (webContent.length > 500 ? '...' : '');
+                };
+                reader.readAsText(file);
+            }
+        });
+        
+        // Tạo repository
+        function createRepo() {
+            const repoName = document.getElementById('repoName').value;
+            
+            if (!repoName) {
+                alert('Vui lòng nhập tên repository!');
+                return;
+            }
+            
+            if (!curlContent && !webContent) {
+                alert('Vui lòng upload ít nhất một file!');
+                return;
+            }
+            
+            // Hiển thị kết quả
+            const result = document.getElementById('result');
+            const resultContent = document.getElementById('resultContent');
+            
+            resultContent.innerHTML = `
+                <p><strong>Tên Repository:</strong> ${repoName}</p>
+                <p><strong>URL Raw (curl):</strong> https://your-app.vercel.app/api/${repoName}/raw</p>
+                <p><strong>URL Web:</strong> https://your-app.vercel.app/api/${repoName}/web</p>
+                <p><strong>Kích thước file curl:</strong> ${curlContent.length} ký tự</p>
+                <p><strong>Kích thước file web:</strong> ${webContent.length} ký tự</p>
+                <p style="color: #ff0055; margin-top: 15px;"><strong>Repository đã được tạo thành công!</strong></p>
+            `;
+            
+            result.style.display = 'block';
+            
+            // Cuộn đến kết quả
+            result.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Đăng xuất
+        function logout() {
+            localStorage.removeItem('isLoggedIn');
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
